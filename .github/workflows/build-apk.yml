@@ -1,0 +1,110 @@
+# ============================================================
+# BOZOK PRO — Otomatik APK Derleme Workflow'u
+# ------------------------------------------------------------
+# Tetikleyiciler:
+#   * main branch'ine push          (anında derler)
+#   * Pull Request açılışı         (derleme kontrolü)
+#   * Manuel: Actions → "Build APK" → Run workflow  (elle derleme)
+#
+# Üretilen çıktılar:
+#   * app-debug.apk   — hata ayıklama imzalı, geliştirme için
+#   * app-release.apk — release; keystore secret'ları yoksa
+#                       debug anahtarıyla imzalanır (cihaza kurulabilir)
+#
+# Gerçek release imzası için repo'ya şu secret'ları ekle:
+#   KEYSTORE_B64  (base64 keystore), STORE_PASSWORD, KEY_PASSWORD
+#   ve aşağıdaki "sign release" adımını aç.
+# ============================================================
+
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:        # manuel çalıştırma butonu
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    name: Derle ve Test Et
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # 1) Kaynak kod
+      - name: 📥 Repoyu çek
+        uses: actions/checkout@v4
+
+      # 2) JDK 17 (AGP 9 + Kotlin 2.2 için uyumlu)
+      - name: ☕ JDK 17 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # 3) Android SDK + lisans kabulü (eksik platformu AGP otomatik indirir)
+      - name: 🤖 Android SDK kur
+        uses: android-actions/setup-android@v3
+
+      # 4) Gradle wrapper + önbellek (sonraki çalıştırmalar hızlanır)
+      - name: 🧰 Gradle kur ve cache'le
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: 🔑 Executable izni ver (gradlew)
+        run: chmod +x gradlew
+
+      # 5) Birim testleri
+      #    QuantEngineTest + ExampleUnitTest JVM'de koşulur.
+      #    Robolectric/Roborazzi ekran testleri yerel görüntü kaydı içindir;
+      #    CI'da görüntü karşılaştırması flaky olabildiği için şimdilik atlandı
+      #    (yerelde: ./gradlew testDebugUnitTest — tamamını koşar).
+      - name: 🧪 Birim testleri koş (Quant Engine)
+        run: ./gradlew testDebugUnitTest --tests "com.example.engine.*" --tests "com.example.ExampleUnitTest" --no-daemon
+
+      # 6) Debug + Release APK üret
+      #    Release, KEYSTORE_PATH ortam değişkeni yoksa debug anahtarıyla
+      #    imzalanır (build.gradle.kts davranışı) → her ortamda derlenir.
+      - name: 📦 APK üret (debug + release)
+        run: ./gradlew assembleDebug assembleRelease --no-daemon
+
+      # 7) APK'ları listele + hash çıkar (doğrulama için)
+      - name: 🔎 APK çıktılarını doğrula
+        run: |
+          echo "=== APK DOSYALARI ==="
+          find app/build/outputs/apk -name "*.apk" -type f -exec ls -lh {} \;
+          echo ""
+          echo "=== SHA-256 HASH'LERİ ==="
+          find app/build/outputs/apk -name "*.apk" -type f -exec sha256sum {} \;
+
+      # 8) Artifact olarak yükle → Actions sayfasından indirilebilir
+      - name: 📤 APK artifact'larını yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: bozok-apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      # ------------------------------------------------------------------
+      # GERÇEK RELEASE İMZASI (isteğe bağlı):
+      # Repo secret'larına KEYSTORE_B64/STORE_PASSWORD/KEY_PASSWORD ekle,
+      # aşağıdaki adımın yorumunu kaldır ve "sign release" işaretini aç.
+      # ------------------------------------------------------------------
+      # - name: 🔑 Keystore'u kur
+      #   if: env.KEYSTORE_B64 != ''
+      #   env:
+      #     KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+      #   run: |
+      #     echo "$KEYSTORE_B64" | base64 -d > my-upload-key.jks
+      # - name: ✍️ Release imzala
+      #   if: env.KEYSTORE_PATH != ''
+      #   env:
+      #     KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
+      #     STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+      #     KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      #   run: ./gradlew assembleRelease --no-daemon
