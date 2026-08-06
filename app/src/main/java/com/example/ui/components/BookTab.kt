@@ -126,7 +126,8 @@ fun HeatmapCanvas(
                         detectDragGestures(
                             onDragStart = { offset ->
                                 if (plan == null || plan.direction == Direction.NEUTRAL) return@detectDragGestures
-                                val h = size.height
+                                // NOTE: pointerInput içinde size IntSize'dir -> toFloat gerekli
+                                val h = size.height.toFloat()
                                 // Çizgi yakalama: plan çizgilerinin Y'lerini hesapla
                                 val (slY, tp1Y, tp2Y) = planLinesY(plan, mid, h)
                                 dragLine = when {
@@ -141,7 +142,7 @@ fun HeatmapCanvas(
                                 change.consume()
                                 if (dragLine == null) return@detectDragGestures
                                 dragAcc += dragAmount.y
-                                val price = yToPrice(dragAcc, mid, size.height)
+                                val price = yToPrice(dragAcc, mid, size.height.toFloat())
                                 when (dragLine) {
                                     "SL" -> onDragPrices(price, null, null)
                                     "TP1" -> onDragPrices(null, price, null)
