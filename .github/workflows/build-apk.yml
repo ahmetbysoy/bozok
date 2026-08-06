@@ -1,6 +1,4 @@
 # BOZOK PRO — Otomatik APK Derleme
-# push (main) / PR / manuel tetiklenir.
-
 name: Build APK
 
 on:
@@ -38,7 +36,7 @@ jobs:
       - name: 🔑 gradlew executable
         run: chmod +x gradlew
 
-      - name: 🧪 Birim testleri (motorlar)
+      - name: 🧪 Birim testleri
         run: ./gradlew testDebugUnitTest --no-daemon
 
       - name: 📦 APK üret (debug + release)

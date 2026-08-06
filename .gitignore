@@ -2,24 +2,13 @@
 .gradle
 .kotlin
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+/.idea
 .DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
 local.properties
-.env
-debug.keystore
-debug.keystore.base64
+*.jks
+*.keystore
 .build-outputs/
-
-# Python
-__pycache__/
-*.pyc
-
