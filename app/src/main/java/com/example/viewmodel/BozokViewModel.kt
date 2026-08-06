@@ -216,11 +216,18 @@ class BozokViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         viewModelScope.launch {
-            listOf(binance.state, bybit.state, okx.state, mexc.state, liquidationSource.status).forEach { flow ->
+            // Borsa durumları (ExchangeState)
+            listOf(binance.state, bybit.state, okx.state, mexc.state).forEach { flow ->
                 flow.collect { st ->
                     AppState.exchanges[st.key] = st
                     _exchanges.value = AppState.exchanges.toMap()
                 }
+            }
+            // Likidasyon kaynağı durumu (ConnStatus)
+            liquidationSource.status.collect { status ->
+                val st = AppState.exchanges["binance"] ?: return@collect
+                AppState.exchanges["binance"] = st.copy(status = status)
+                _exchanges.value = AppState.exchanges.toMap()
             }
         }
     }
@@ -524,8 +531,13 @@ class BozokViewModel(application: Application) : AndroidViewModel(application) {
                     val ev = events[idx]
                     when (ev.type) {
                         "price" -> {
-                            val cur = AppState.book
-                            AppState.book = cur.copy(midPrice = ev.value, ts = System.currentTimeMillis(), label = "REPLAY")
+                            // Book modelinde midPrice yok; bid/ask'ı fiyat civarına kur
+                            val tick = Fmt.tickSizeFor(ev.value)
+                            AppState.book = Book(
+                                bids = listOf(BookLevel(ev.value - tick, 1.0)),
+                                asks = listOf(BookLevel(ev.value + tick, 1.0)),
+                                ts = System.currentTimeMillis(), label = "REPLAY"
+                            )
                             AppState.lastPrice = ev.value
                             _book.value = AppState.book
                         }

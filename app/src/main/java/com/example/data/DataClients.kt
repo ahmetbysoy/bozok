@@ -189,7 +189,6 @@ class BinanceClient(private val scope: CoroutineScope) {
                         book.setSnapshot(b, a, lastId)
                         val pending = book.pending.toList(); book.pending.clear()
                         for (ev in pending) if (ev.u >= lastId + 1) book.applyDelta(ev)
-                        book.synced = true
                         publishBook()
                     }
                 }

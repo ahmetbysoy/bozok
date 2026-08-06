@@ -18,6 +18,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontFamily
@@ -128,9 +130,9 @@ fun HeatmapCanvas(
                                 // Çizgi yakalama: plan çizgilerinin Y'lerini hesapla
                                 val (slY, tp1Y, tp2Y) = planLinesY(plan, mid, h)
                                 dragLine = when {
-                                    tp1Y != null && kotlin.math.abs(offset.y - tp1Y) <= 18 -> "TP1"
-                                    tp2Y != null && kotlin.math.abs(offset.y - tp2Y) <= 18 -> "TP2"
-                                    slY != null && kotlin.math.abs(offset.y - slY) <= 18 -> "SL"
+                                    tp1Y != null && kotlin.math.abs(offset.y - tp1Y) <= 18f -> "TP1"
+                                    tp2Y != null && kotlin.math.abs(offset.y - tp2Y) <= 18f -> "TP2"
+                                    slY != null && kotlin.math.abs(offset.y - slY) <= 18f -> "SL"
                                     else -> null
                                 }
                                 dragAcc = 0f
