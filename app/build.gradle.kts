@@ -1,6 +1,8 @@
 plugins {
   alias(libs.plugins.android.application)
-  alias(libs.plugins.kotlin.android)
+  // NOT (AGP 9+): built-in Kotlin desteği var; kotlin-android plugin'i uygulanırsa
+  // "Cannot add extension with name 'kotlin'" çakışması olur.
+  // Sadece Compose Compiler sub-plugin'i uygulanır.
   alias(libs.plugins.kotlin.compose)
 }
 
@@ -50,10 +52,6 @@ android {
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
-  }
-
-  kotlin {
-    jvmToolchain(17)
   }
 
   buildFeatures {
